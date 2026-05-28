@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velocity Debt Calculator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f6; padding: 20px; color: #333; max-width: 900px; margin: auto; }
+        .ad-banner { background: #e5e7eb; height: 90px; display: flex; align-items: center; justify-content: center; margin: 20px 0; border: 1px dashed #9ca3af; color: #6b7280; }
+        .calculator-card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header-row, .debt-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr 50px; gap: 10px; align-items: center; margin-bottom: 10px; }
+        input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; }
+        .metric-box { background: #1e3a8a; color: white; padding: 30px; text-align: center; border-radius: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- Top AdSense Slot -->
+    <div class="ad-banner">AdSense 728x90 Top Banner</div>
+
+    <div class="calculator-card">
+        <h1>Velocity Debt Calculator</h1>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+            <div><label style="font-weight:bold;">Net Pay ($)</label><input type="number" id="netPay" onblur="calculate()"></div>
+            <div><label style="font-weight:bold;">Expenses ($)</label><input type="number" id="expenses" onblur="calculate()"></div>
+        </div>
+
+        <div class="header-row">
+            <div style="font-size:0.7rem; font-weight:bold; color:#64748b;">NAME</div>
+            <div style="font-size:0.7rem; font-weight:bold; color:#64748b;">BALANCE</div>
+            <div style="font-size:0.7rem; font-weight:bold; color:#64748b;">APR %</div>
+            <div style="font-size:0.7rem; font-weight:bold; color:#64748b;">MIN</div>
+            <div style="font-size:0.7rem; font-weight:bold; color:#64748b;">EXTRA</div>
+            <div></div>
+        </div>
+        <div id="debtList"></div>
+        <button onclick="addDebtRow()" style="background:#3b82f6; color:white; padding:10px; width:100%; border:none; border-radius:6px; cursor:pointer;">+ Add Debt</button>
+    </div>
+
+    <div class="metric-box">
+        <h2 style="margin:0; opacity:0.8;">Estimated Time to Debt-Free</h2>
+        <div id="months" style="font-size: 4rem; font-weight: 800; color: #34d399; margin: 10px 0;">0</div>
+        <div>months remaining</div>
+    </div>
+
+    <!-- Bottom AdSense Slot -->
+    <div class="ad-banner">AdSense Responsive Display Bottom</div>
+
+    <script>
+        function addDebtRow(n="", b="", a="", m="", v="") {
+            const div = document.createElement('div');
+            div.className = 'debt-row';
+            div.innerHTML = `<input type="number" step="any" placeholder="Name" value="${n}" onblur="calculate()">
+                             <input type="number" step="any" placeholder="0" value="${b}" onblur="calculate()">
+                             <input type="number" step="any" placeholder="0" value="${a}" onblur="calculate()">
+                             <input type="number" step="any" placeholder="0" value="${m}" onblur="calculate()">
+                             <input type="number" step="any" placeholder="0" value="${v}" onblur="calculate()">
+                             <button onclick="this.parentElement.remove(); calculate()" style="background:#ef4444; color:white; border:none; padding:8px; border-radius:4px;">X</button>`;
+            document.getElementById('debtList').appendChild(div);
+        }
+
+        function calculate() {
+            let totalMonths = 0;
+            document.querySelectorAll('.debt-row').forEach(row => {
+                const i = row.querySelectorAll('input');
+                const bal = parseFloat(i[1].value) || 0;
+                const apr = (parseFloat(i[2].value) || 0) / 100 / 12;
+                const pmt = (parseFloat(i[3].value) || 0) + (parseFloat(i[4].value) || 0);
+                
+                if (apr > 0 && pmt > (bal * apr)) {
+                    totalMonths = Math.max(totalMonths, -Math.log(1 - (bal * apr) / pmt) / Math.log(1 + apr));
+                } else if (pmt > 0) {
+                    totalMonths = Math.max(totalMonths, bal / pmt);
+                }
+            });
+            document.getElementById('months').innerText = (totalMonths >= 999 || !isFinite(totalMonths)) ? "∞" : Math.ceil(totalMonths);
+            
+            const data = {
+                net: document.getElementById('netPay').value,
+                exp: document.getElementById('expenses').value,
+                debts: Array.from(document.querySelectorAll('.debt-row')).map(r => {
+                    const i = r.querySelectorAll('input');
+                    return {n:i[0].value, b:i[1].value, a:i[2].value, m:i[3].value, v:i[4].value};
+                })
+            };
+            localStorage.setItem('velocityData', JSON.stringify(data));
+        }
+
+        window.onload = () => {
+            const saved = JSON.parse(localStorage.getItem('velocityData'));
+            if (saved) {
+                document.getElementById('netPay').value = saved.net;
+                document.getElementById('expenses').value = saved.exp;
+                saved.debts.forEach(d => addDebtRow(d.n, d.b, d.a, d.m, d.v));
+            } else { addDebtRow(); }
+            calculate();
+        };
+    </script>
+</body>
+</html>
