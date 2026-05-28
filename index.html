@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Calculate your debt payoff date using Velocity Banking strategies. A free, clean tool for HELOC, PLOC, and credit card debt acceleration.">
+    <title>Velocity Strategy Engine</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f4f7f6; padding: 15px; color: #333; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .debt-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 30px; gap: 5px; margin-bottom: 10px; }
+        input, select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; }
+        .results-box { background: #1e3a8a; color: white; padding: 20px; text-align: center; border-radius: 8px; }
+        .metric { font-size: 1.5rem; font-weight: bold; color: #34d399; }
+        .btn-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 15px; }
+        button { cursor: pointer; padding: 10px; border-radius: 6px; border: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>My Financial Pulse</h2>
+        <label>Strategy Mode:</label>
+        <select id="strategyMode">
+            <option value="cc">Credit Card Float</option>
+            <option value="ploc">Personal Line of Credit (PLOC)</option>
+            <option value="heloc">HELOC</option>
+            <option value="cash">Pure Cash-Flow Strategy</option>
+        </select>
+        <label style="margin-top:10px; display:block;">Net Pay ($):</label>
+        <input type="number" id="netPay" value="2000" oninput="calculate()">
+        <label style="margin-top:10px; display:block;">Expenses ($):</label>
+        <input type="number" id="expenses" value="1250" oninput="calculate()">
+        
+        <div style="margin-top: 15px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+            <strong>Surplus:</strong>
+            <div id="trueSurplus" style="font-size: 1.5rem; color: #059669;">$0</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Debt & Velocity Transfers</h2>
+        <div id="debtList">
+            <div class="debt-row" style="font-size:0.6rem; font-weight:bold;">
+                <span>Name</span><span>Balance</span><span>APR</span><span>Min Pmt</span><span>Move $</span>
+            </div>
+        </div>
+        <button onclick="addDebtRow()" style="background:#3b82f6; color:white; width:100%; margin-top:10px;">+ Add Debt</button>
+    </div>
+
+    <div class="card results-box">
+        <h3>Estimated Payoff (Months)</h3>
+        <div class="metric"><span id="months">0</span> Months</div>
+    </div>
+
+    <div class="card" style="text-align:center; background:#f9fafb; border: 2px dashed #cbd5e1;">
+        <p style="color:#666;">[Space for Targeted Affiliate Link or AdSense Banner]</p>
+    </div>
+
+    <div class="btn-row">
+        <button onclick="saveData()" style="background:#10b981; color:white; flex:1;">Save Blueprint</button>
+        <button onclick="clearData()" style="background:#ef4444; color:white; flex:1;">Clear All</button>
+    </div>
+
+    <script>
+        function addDebtRow(name="", bal="", apr="", minPmt="", move="") {
+            const div = document.createElement('div');
+            div.className = 'debt-row';
+            div.innerHTML = `<input type="text" class="name" value="${name}"><input type="number" class="bal" value="${bal}"><input type="number" class="apr" value="${apr}"><input type="number" class="minPmt" value="${minPmt}"><input type="number" class="move" value="${move}"><button onclick="this.parentElement.remove(); calculate()">X</button>`;
+            div.addEventListener('input', calculate);
+            document.getElementById('debtList').appendChild(div);
+            calculate();
+        }
+
+        function calculate() {
+            const netPay = parseFloat(document.getElementById('netPay').value) || 0;
+            const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+            let totalDebt = 0, totalMinPmts = 0, totalMove = 0;
+
+            document.querySelectorAll('.debt-row').forEach(row => {
+                totalDebt += parseFloat(row.querySelector('.bal')?.value) || 0;
+                totalMinPmts += parseFloat(row.querySelector('.minPmt')?.value) || 0;
+                totalMove += parseFloat(row.querySelector('.move')?.value) || 0;
+            });
+
+            document.getElementById('trueSurplus').innerText = "$" + (netPay - expenses - totalMinPmts).toLocaleString();
+            document.getElementById('months').innerText = totalMove > 0 ? Math.ceil(totalDebt / totalMove) : "0";
+        }
+
+        function saveData() {
+            const data = { 
+                mode: document.getElementById('strategyMode').value,
+                netPay: document.getElementById('netPay').value, 
+                expenses: document.getElementById('expenses').value, 
+                debts: [] 
+            };
+            document.querySelectorAll('.debt-row').forEach(row => {
+                data.debts.push({ name: row.querySelector('.name').value, bal: row.querySelector('.bal').value, apr: row.querySelector('.apr').value, minPmt: row.querySelector('.minPmt').value, move: row.querySelector('.move').value });
+            });
+            localStorage.setItem('velocityBlueprint', JSON.stringify(data));
+            alert('Blueprint Saved!');
+        }
+
+        function loadData() {
+            const saved = JSON.parse(localStorage.getItem('velocityBlueprint'));
+            if(saved) {
+                document.getElementById('strategyMode').value = saved.mode;
+                document.getElementById('netPay').value = saved.netPay;
+                document.getElementById('expenses').value = saved.expenses;
+                saved.debts.forEach(d => addDebtRow(d.name, d.bal, d.apr, d.minPmt, d.move));
+            } else { addDebtRow(); }
+            calculate();
+        }
+
+        window.onload = loadData;
+        function clearData() { localStorage.clear(); location.reload(); }
+    </script>
+</body>
+</html>
