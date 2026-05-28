@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velocity Debt Calculator</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; max-width: 900px; margin: auto; }
+        .ad-banner { background: #e5e7eb; height: 90px; display: flex; align-items: center; justify-content: center; margin: 20px 0; border: 1px dashed #9ca3af; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .row { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr 50px; gap: 10px; margin-bottom: 10px; align-items: center; }
+        input { padding: 12px; border: 1px solid #ccc; border-radius: 6px; width: 100%; }
+        button.calc-btn { background: #059669; color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="ad-banner">AdSense 728x90 Banner</div>
+
+    <div class="card">
+        <h1>Velocity Debt Calculator</h1>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div><label>Net Pay ($)</label><input type="text" id="netPay"></div>
+            <div><label>Expenses ($)</label><input type="text" id="expenses"></div>
+        </div>
+
+        <div id="debtList"></div>
+        <button onclick="addDebtRow()" style="background:#3b82f6; color:white; padding:10px; border:none; border-radius:6px; width:100%;">+ Add Debt</button>
+        
+        <button class="calc-btn" onclick="calculate()">CALCULATE PAYOFF DATE</button>
+    </div>
+
+    <div class="card" style="margin-top:20px; text-align:center; background:#1e3a8a; color:white;">
+        <h2>Months to Debt Free</h2>
+        <div id="months" style="font-size: 4rem; font-weight: 800; color: #34d399;">0</div>
+    </div>
+
+    <div class="ad-banner">AdSense Responsive Display</div>
+
+    <script>
+        function addDebtRow(n="", b="", a="", m="", v="") {
+            const div = document.createElement('div');
+            div.className = 'row';
+            div.innerHTML = `<input type="text" class="dName" value="${n}" placeholder="Name">
+                             <input type="text" class="dBal" value="${b}" placeholder="Bal">
+                             <input type="text" class="dApr" value="${a}" placeholder="APR%">
+                             <input type="text" class="dMin" value="${m}" placeholder="Min">
+                             <input type="text" class="dExt" value="${v}" placeholder="Extra">
+                             <button onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; padding:10px; border-radius:4px;">X</button>`;
+            document.getElementById('debtList').appendChild(div);
+        }
+
+        function calculate() {
+            let maxMonths = 0;
+            const rows = document.querySelectorAll('.row');
+            
+            rows.forEach(row => {
+                const bal = parseFloat(row.querySelector('.dBal').value) || 0;
+                const apr = (parseFloat(row.querySelector('.dApr').value) || 0) / 100 / 12;
+                const min = parseFloat(row.querySelector('.dMin').value) || 0;
+                const ext = parseFloat(row.querySelector('.dExt').value) || 0;
+                const pmt = min + ext;
+                
+                if (bal > 0) {
+                    if (apr > 0 && pmt > (bal * apr)) {
+                        // Formula: N = -log(1 - (B*i)/P) / log(1+i)
+                        const months = -Math.log(1 - (bal * apr) / pmt) / Math.log(1 + apr);
+                        if (months > maxMonths) maxMonths = months;
+                    } else if (pmt > 0) {
+                        const months = bal / pmt;
+                        if (months > maxMonths) maxMonths = months;
+                    }
+                }
+            });
+
+            document.getElementById('months').innerText = (maxMonths >= 999 || maxMonths === 0 || !isFinite(maxMonths)) ? "∞" : Math.ceil(maxMonths);
+            
+            // Auto-save logic
+            const data = {
+                net: document.getElementById('netPay').value,
+                exp: document.getElementById('expenses').value,
+                debts: Array.from(rows).map(r => ({
+                    n: r.querySelector('.dName').value,
+                    b: r.querySelector('.dBal').value,
+                    a: r.querySelector('.dApr').value,
+                    m: r.querySelector('.dMin').value,
+                    v: r.querySelector('.dExt').value
+                }))
+            };
+            localStorage.setItem('velocityData', JSON.stringify(data));
+        }
+
+        window.onload = () => {
+            const saved = JSON.parse(localStorage.getItem('velocityData'));
+            if (saved) {
+                document.getElementById('netPay').value = saved.net;
+                document.getElementById('expenses').value = saved.exp;
+                saved.debts.forEach(d => addDebtRow(d.n, d.b, d.a, d.m, d.v));
+            } else { addDebtRow(); }
+        };
+    </script>
+</body>
+</html>
